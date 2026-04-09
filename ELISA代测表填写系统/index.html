@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELISA检测服务 - 样本信息填写系统</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="template_base64.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            min-height: 100vh;
+            color: var(--gray-800);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(37, 99, 235, 0.3);
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        /* Progress Bar */
+        .progress-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+        }
+        
+        .progress-steps::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gray-200);
+            z-index: 1;
+        }
+        
+        .progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            flex: 1;
+        }
+        
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--gray-200);
+            color: var(--gray-500);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .step-circle.active {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .step-circle.completed {
+            background: var(--success);
+            color: white;
+        }
+        
+        .step-label {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--gray-500);
+            text-align: center;
+            max-width: 80px;
+        }
+        
+        .step-label.active {
+            color: var(--primary);
+            font-weight: 500;
+        }
+        
+        /* Form Card */
+        .form-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        
+        .step-content {
+            display: none;
+            padding: 30px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .step-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .step-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .step-title .icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary-light);
+            color: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .step-desc {
+            color: var(--gray-500);
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+        
+        /* Notice Box */
+        .notice-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid var(--warning);
+            padding: 15px 20px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 25px;
+        }
+        
+        .notice-box h4 {
+            color: #92400e;
+            font-size: 14px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .notice-box ul {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 13px;
+            color: #78350f;
+        }
+        
+        .notice-box li {
+            margin: 4px 0;
+        }
+        
+        /* Info Box */
+        .info-box {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-left: 4px solid var(--primary);
+            padding: 15px 20px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 25px;
+        }
+        
+        .info-box h4 {
+            color: #1e40af;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .info-box p {
+            font-size: 13px;
+            color: #1e3a8a;
+            margin: 0;
+        }
+        
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 6px;
+        }
+        
+        label .required {
+            color: var(--danger);
+            margin-left: 2px;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            background: white;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        input::placeholder {
+            color: var(--gray-400);
+        }
+        
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+        
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--gray-100);
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-600);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--gray-200);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            color: white;
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Sample Table */
+        .sample-table-container {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+        
+        .sample-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        .sample-table th {
+            background: var(--gray-50);
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 500;
+            color: var(--gray-600);
+            border-bottom: 2px solid var(--gray-200);
+            white-space: nowrap;
+        }
+        
+        .sample-table td {
+            padding: 8px;
+            border-bottom: 1px solid var(--gray-100);
+            vertical-align: middle;
+        }
+        
+        .sample-table input {
+            padding: 8px;
+            font-size: 13px;
+        }
+        
+        .sample-table .row-num {
+            text-align: center;
+            color: var(--gray-400);
+            font-size: 12px;
+        }
+        
+        .add-row-btn {
+            background: none;
+            border: 2px dashed var(--gray-300);
+            color: var(--gray-500);
+            padding: 10px;
+            width: 100%;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 10px;
+            transition: all 0.2s ease;
+        }
+        
+        .add-row-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--gray-50);
+        }
+        
+        .delete-row-btn {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .delete-row-btn:hover {
+            background: #fee2e2;
+        }
+        
+        /* Summary */
+        .summary-section {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-section h4 {
+            font-size: 14px;
+            color: var(--gray-600);
+            margin-bottom: 12px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+        
+        .summary-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+        }
+        
+        .summary-item .label {
+            font-size: 11px;
+            color: var(--gray-500);
+            margin-bottom: 4px;
+        }
+        
+        .summary-item .value {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-800);
+        }
+        
+        /* Customer Notice */
+        .customer-notice {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .customer-notice h4 {
+            color: #991b1b;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        
+        .customer-notice ol {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 13px;
+            color: #7f1d1d;
+        }
+        
+        .customer-notice li {
+            margin: 6px 0;
+        }
+        
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: var(--gray-800);
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .toast.success {
+            background: var(--success);
+        }
+        
+        .toast.error {
+            background: var(--danger);
+        }
+        
+        /* Responsive */
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 22px;
+            }
+            
+            .step-label {
+                display: none;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ELISA检测服务 - 样本信息填写系统</h1>
+            <p>请按照步骤填写完整的样本检测信息，完成后可导出Excel表格</p>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div class="progress-container">
+            <div class="progress-steps">
+                <div class="progress-step">
+                    <div class="step-circle active" id="step-indicator-1">1</div>
+                    <div class="step-label active">基本信息</div>
+                </div>
+                <div class="progress-step">
+                    <div class="step-circle" id="step-indicator-2">2</div>
+                    <div class="step-label">检测要求</div>
+                </div>
+                <div class="progress-step">
+                    <div class="step-circle" id="step-indicator-3">3</div>
+                    <div class="step-label">样本信息</div>
+                </div>
+                <div class="progress-step">
+                    <div class="step-circle" id="step-indicator-4">4</div>
+                    <div class="step-label">确认提交</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Form Card -->
+        <div class="form-card">
+            <!-- Step 1: Basic Info -->
+            <div class="step-content active" id="step-1">
+                <h2 class="step-title">
+                    <span class="icon">👤</span>
+                    客户基本信息
+                </h2>
+                <p class="step-desc">请填写您的联系方式，便于我们与您沟通检测结果</p>
+                
+                <div class="notice-box">
+                    <h4>📦 寄样须知</h4>
+                    <ul>
+                        <li>做好分组，每组装一个自封袋，标记清楚编号和分组</li>
+                        <li>用1ml/1.5ml的EP管装样本，样本不回寄请做好分装备份</li>
+                        <li>干冰+冰袋+泡沫箱邮寄（样本用自封袋装好再放干冰里）</li>
+                        <li>代测表打印随样寄出，顺丰邮寄</li>
+                    </ul>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>姓名 <span class="required">*</span></label>
+                        <input type="text" id="name" placeholder="请输入您的姓名" required>
+                    </div>
+                    <div class="form-group">
+                        <label>电话 <span class="required">*</span></label>
+                        <input type="tel" id="phone" placeholder="请输入联系电话" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>单位名称 <span class="required">*</span></label>
+                    <input type="text" id="company" placeholder="请输入您的单位名称" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>样本快递单号 <span class="required">*</span></label>
+                        <input type="text" id="trackingNo" placeholder="顺丰快递单号" required>
+                    </div>
+                    <div class="form-group">
+                        <label>订单编号 <span class="required">*</span></label>
+                        <input type="text" id="orderNo" placeholder="例：20260412" oninput="formatOrderNo(this)" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>业务员</label>
+                    <input type="text" id="salesperson" list="salespersonList" placeholder="选择或输入业务员姓名" value="陈美龙">
+                    <datalist id="salespersonList">
+                        <option value="陈美龙">
+                        <option value="其他">
+                    </datalist>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="nextStep(1)">
+                        下一步 →
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Step 2: Test Requirements -->
+            <div class="step-content" id="step-2">
+                <h2 class="step-title">
+                    <span class="icon">🧬</span>
+                    样本检测要求
+                </h2>
+                <p class="step-desc">请详细填写您的检测需求</p>
+                
+                <div class="info-box">
+                    <h4>💡 提示</h4>
+                    <p>带 * 的项目为必填项，请务必仔细填写，这样可以第一时间准确安排检测并获得准确结果。</p>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>种属（必填）<span class="required">*</span></label>
+                        <input type="text" id="species" placeholder="如：人、小鼠、大鼠等" required>
+                    </div>
+                    <div class="form-group">
+                        <label>样本数量（个）<span class="required">*</span></label>
+                        <input type="number" id="sampleCount" placeholder="请输入样本数量" min="1" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>样本类型（必填）<span class="required">*</span></label>
+                    <input type="text" id="sampleType" list="sampleTypeList" placeholder="选择或输入样本类型" required>
+                    <datalist id="sampleTypeList">
+                        <option value="血清">
+                        <option value="血浆">
+                        <option value="尿液">
+                        <option value="胸腹水">
+                        <option value="脑脊液">
+                        <option value="唾液">
+                        <option value="细胞培养上清">
+                        <option value="牛奶">
+                        <option value="蜂蜜">
+                        <option value="全血">
+                        <option value="组织标本">
+                        <option value="培养的细胞">
+                        <option value="组织的细胞">
+                        <option value="土壤">
+                        <option value="咽拭子">
+                        <option value="植物标本">
+                        <option value="其他">
+                    </datalist>
+                </div>
+                
+                <div class="form-group">
+                    <label>指标名称（中英文）（必填）<span class="required">*</span></label>
+                    <input type="text" id="indicator" placeholder="如：白细胞介素-6 (IL-6)" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>实验要求 <span class="required">*</span></label>
+                        <input type="text" id="testRequirement" list="testReqList" placeholder="选择或输入" required>
+                        <datalist id="testReqList">
+                            <option value="定性检测">
+                            <option value="定量检测">
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label>实验目的 <span class="required">*</span></label>
+                        <input type="text" id="testPurpose" list="testPurposeList" placeholder="选择或输入" required>
+                        <datalist id="testPurposeList">
+                            <option value="基础研究">
+                            <option value="药物开发">
+                            <option value="其他">
+                        </datalist>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>备注</label>
+                    <textarea id="remarks" placeholder="如需要请描述您的样本情况"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>实验样本信息</label>
+                    <textarea id="sampleInfo" placeholder="请注明样本分组信息和处理情况"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>样本是否做重复</label>
+                        <input type="text" id="sampleRepeat" list="sampleRepeatList" placeholder="选择或输入">
+                        <datalist id="sampleRepeatList">
+                            <option value="无">
+                            <option value="双复孔">
+                            <option value="三复孔">
+                            <option value="其他">
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label>标曲是否做重复</label>
+                        <input type="text" id="standardRepeat" list="standardRepeatList" placeholder="选择或输入">
+                        <datalist id="standardRepeatList">
+                            <option value="无">
+                            <option value="双标曲">
+                            <option value="三标曲">
+                        </datalist>
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="prevStep(2)">
+                        ← 上一步
+                    </button>
+                    <button class="btn btn-primary" onclick="nextStep(2)">
+                        下一步 →
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Step 3: Sample Details -->
+            <div class="step-content" id="step-3">
+                <h2 class="step-title">
+                    <span class="icon">📋</span>
+                    样本检测信息采集
+                </h2>
+                <p class="step-desc">请填写每个样本的详细信息</p>
+                
+                <div class="notice-box">
+                    <h4>📝 填写须知</h4>
+                    <ul>
+                        <li>为方便实验人员抄录核对样本，避免不必要的错误，请详细填写以下样本信息</li>
+                        <li>请提供正确的样本编号，若实际收到样本编号和代测表填写不一致，按实际收到样本编号实验</li>
+                        <li>填写完成后请自行确认无误</li>
+                    </ul>
+                </div>
+                
+                <div class="sample-table-container">
+                    <div style="display:flex; align-items:center; gap:15px; margin-bottom:10px; flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:8px; flex:1;">
+                            <button class="add-row-btn" style="margin:0; border-style:solid; border-color:var(--primary); color:var(--primary);" onclick="showAddRowDialog()">
+                                + 添加样本行
+                            </button>
+                            <input type="number" id="addRowCount" value="1" min="1" max="50" style="width:60px; padding:8px; border:1px solid var(--gray-300); border-radius:6px; text-align:center;">
+                            <span style="font-size:12px; color:var(--gray-500);">行</span>
+                        </div>
+                    </div>
+                    <!-- 批量设置区域 -->
+                    <div style="margin-bottom:10px; background:var(--gray-50); padding:12px; border-radius:8px; border:1px solid var(--gray-200);">
+                        <div style="font-size:12px; font-weight:500; color:var(--gray-700); margin-bottom:8px;">批量设置（填写需要批量应用的字段）：</div>
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                <label style="margin:0; font-size:11px; color:var(--gray-500); white-space:nowrap;">样本编号</label>
+                                <input type="text" id="batchCode" placeholder="S001" style="padding:5px 8px; font-size:12px; width:70px; border:1px solid var(--gray-300); border-radius:4px;">
+                            </div>
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                <label style="margin:0; font-size:11px; color:var(--gray-500); white-space:nowrap;">样本类型</label>
+                                <input type="text" id="batchType" placeholder="血清" style="padding:5px 8px; font-size:12px; width:70px; border:1px solid var(--gray-300); border-radius:4px;">
+                            </div>
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                <label style="margin:0; font-size:11px; color:var(--gray-500); white-space:nowrap;">样本分组</label>
+                                <input type="text" id="batchGroup" placeholder="对照组" style="padding:5px 8px; font-size:12px; width:70px; border:1px solid var(--gray-300); border-radius:4px;">
+                            </div>
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                <label style="margin:0; font-size:11px; color:var(--gray-500); white-space:nowrap;">样本量(μl)</label>
+                                <input type="text" id="batchAmount" placeholder="50" style="padding:5px 8px; font-size:12px; width:60px; border:1px solid var(--gray-300); border-radius:4px;">
+                            </div>
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                <label style="margin:0; font-size:11px; color:var(--gray-500); white-space:nowrap;">保存温度(℃)</label>
+                                <input type="text" id="batchTemp" placeholder="-80" style="padding:5px 8px; font-size:12px; width:60px; border:1px solid var(--gray-300); border-radius:4px;">
+                            </div>
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                <label style="margin:0; font-size:11px; color:var(--gray-500); white-space:nowrap;">收集日期</label>
+                                <input type="date" id="batchDate" style="padding:5px 8px; font-size:12px; width:120px; border:1px solid var(--gray-300); border-radius:4px;">
+                            </div>
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                <label style="margin:0; font-size:11px; color:var(--gray-500); white-space:nowrap;">备注</label>
+                                <input type="text" id="batchNote" placeholder="备注" style="padding:5px 8px; font-size:12px; width:70px; border:1px solid var(--gray-300); border-radius:4px;">
+                            </div>
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                <label style="margin:0; font-size:11px; color:var(--gray-500); white-space:nowrap;">处理要求</label>
+                                <input type="text" id="batchReq" placeholder="要求" style="padding:5px 8px; font-size:12px; width:70px; border:1px solid var(--gray-300); border-radius:4px;">
+                            </div>
+                            <div style="display:flex; gap:6px; margin-left:auto;">
+                                <button onclick="applyBatchToAll()" style="padding:6px 12px; background:var(--primary); color:white; border:none; border-radius:6px; font-size:12px; cursor:pointer;">全部应用</button>
+                                <button onclick="applyBatchToSelected()" style="padding:6px 12px; background:var(--success); color:white; border:none; border-radius:6px; font-size:12px; cursor:pointer;">选中应用</button>
+                            </div>
+                        </div>
+                    </div>
+                    <table class="sample-table">
+                        <thead>
+                            <tr>
+                                <th style="width:40px"><input type="checkbox" id="selectAll" onclick="toggleSelectAll()" title="全选"></th>
+                                <th style="width:45px">序号</th>
+                                <th style="width:90px">样本类型</th>
+                                <th style="width:90px">样本编号*</th>
+                                <th style="width:90px">样本分组</th>
+                                <th style="width:75px">样本量(μl)</th>
+                                <th style="width:75px">保存温度(℃)</th>
+                                <th style="width:100px">收集日期</th>
+                                <th>备注</th>
+                                <th style="width:110px">处理特殊要求</th>
+                                <th style="width:35px"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="sampleTableBody">
+                            <!-- Rows will be added dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <button class="add-row-btn" onclick="showAddRowDialog()">
+                    + 添加更多样本行
+                </button>
+                
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="prevStep(3)">
+                        ← 上一步
+                    </button>
+                    <button class="btn btn-primary" onclick="nextStep(3)">
+                        下一步 →
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Step 4: Confirmation -->
+            <div class="step-content" id="step-4">
+                <h2 class="step-title">
+                    <span class="icon">✅</span>
+                    确认信息
+                </h2>
+                <p class="step-desc">请确认以下信息无误后提交</p>
+                
+                <div class="summary-section">
+                    <h4>客户信息</h4>
+                    <div class="summary-grid" id="customerSummary">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+                
+                <div class="summary-section">
+                    <h4>检测要求</h4>
+                    <div class="summary-grid" id="testSummary">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+                
+                <div class="summary-section">
+                    <h4>样本信息</h4>
+                    <div id="sampleSummary">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+                
+                <div class="customer-notice">
+                    <h4>⚠️ 客户须知</h4>
+                    <ol>
+                        <li>剩余样本不予寄回（作为废品处理），请客户自行分装备份，寄送适量样本。</li>
+                        <li>如实验需分多次进行，请提前告知保留样本及试剂盒以进行后续实验。</li>
+                        <li>为保证样本量足够检测，请多寄送50-100μl，避免样本不足导致无法检测。</li>
+                        <li>实验为免费代测服务，实验有不确定性，我司只对试剂盒本身负责，不对样本负责。</li>
+                        <li>免费代测服务，故实验室不提供实验图片、视频，如需提供需额外收费。</li>
+                        <li>出具报告一个月内若对结果有疑问，请及时反馈；超出一个月反馈期，则视为实验结果有效，不接受投诉。</li>
+                    </ol>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="prevStep(4)">
+                        ← 上一步
+                    </button>
+                    <button class="btn btn-success" id="exportBtn" onclick="exportExcel()">
+                        📥 导出Excel表格
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentStep = 1;
+        let sampleRowCount = 0;
+        
+        // Initialize sample table with default rows
+        function initSampleTable() {
+            for (let i = 0; i < 5; i++) {
+                addSingleRow();
+            }
+        }
+        
+        // Add a sample row
+        function addSampleRow() {
+            const count = parseInt(document.getElementById('addRowCount').value) || 1;
+            for (let i = 0; i < count; i++) {
+                addSingleRow();
+            }
+            showToast(`已添加 ${count} 行`, 'success');
+        }
+        
+        // Add single row (internal use)
+        function addSingleRow() {
+            sampleRowCount++;
+            const tbody = document.getElementById('sampleTableBody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td style="text-align:center;"><input type="checkbox" class="row-checkbox" onclick="updateSelectAllState()"></td>
+                <td class="row-num">${sampleRowCount}</td>
+                <td><input type="text" name="stype" placeholder="如：血清"></td>
+                <td><input type="text" name="scode" required placeholder="必填"></td>
+                <td><input type="text" name="sgroup" placeholder="如：对照组"></td>
+                <td><input type="text" name="samount" placeholder="μl"></td>
+                <td><input type="text" name="stemp" placeholder="-80"></td>
+                <td><input type="date" name="sdate"></td>
+                <td><input type="text" name="snote" placeholder="备注"></td>
+                <td><input type="text" name="sreq" placeholder="特殊要求"></td>
+                <td><button class="delete-row-btn" onclick="removeSampleRow(this)">×</button></td>
+            `;
+            tbody.appendChild(row);
+        }
+        
+        // Show add row dialog (for backward compatibility)
+        function showAddRowDialog() {
+            addSampleRow();
+        }
+        
+        // Toggle select all checkboxes
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        }
+        
+        // Update select all checkbox state
+        function updateSelectAllState() {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            const selectAll = document.getElementById('selectAll');
+            if (checkboxes.length === 0) {
+                selectAll.checked = false;
+                return;
+            }
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            selectAll.checked = allChecked;
+        }
+        
+        // Remove a sample row
+        function removeSampleRow(btn) {
+            const row = btn.closest('tr');
+            row.remove();
+            renumberRows();
+        }
+        
+        // Renumber rows after deletion
+        function renumberRows() {
+            const rows = document.querySelectorAll('#sampleTableBody tr');
+            rows.forEach((row, index) => {
+                row.querySelector('.row-num').textContent = index + 1;
+            });
+            sampleRowCount = rows.length;
+        }
+        
+        // Navigate to next step
+        function nextStep(from) {
+            if (validateStep(from)) {
+                document.getElementById(`step-${from}`).classList.remove('active');
+                document.getElementById(`step-${from + 1}`).classList.add('active');
+                document.getElementById(`step-indicator-${from}`).classList.remove('active');
+                document.getElementById(`step-indicator-${from}`).classList.add('completed');
+                document.getElementById(`step-indicator-${from + 1}`).classList.add('active');
+                currentStep = from + 1;
+                
+                if (currentStep === 4) {
+                    updateSummary();
+                }
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+        
+        // Navigate to previous step
+        function prevStep(from) {
+            document.getElementById(`step-${from}`).classList.remove('active');
+            document.getElementById(`step-${from - 1}`).classList.add('active');
+            document.getElementById(`step-indicator-${from}`).classList.remove('active');
+            document.getElementById(`step-indicator-${from - 1}`).classList.remove('completed');
+            document.getElementById(`step-indicator-${from - 1}`).classList.add('active');
+            currentStep = from - 1;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // Validate current step
+        function validateStep(step) {
+            if (step === 1) {
+                const name = document.getElementById('name').value.trim();
+                const phone = document.getElementById('phone').value.trim();
+                const company = document.getElementById('company').value.trim();
+                const tracking = document.getElementById('trackingNo').value.trim();
+                const order = document.getElementById('orderNo').value.trim();
+                
+                if (!name || !phone || !company || !tracking || !order) {
+                    showToast('请填写所有必填项！', 'error');
+                    return false;
+                }
+            } else if (step === 2) {
+                const species = document.getElementById('species').value.trim();
+                const count = document.getElementById('sampleCount').value;
+                const type = document.getElementById('sampleType').value;
+                const indicator = document.getElementById('indicator').value.trim();
+                const req = document.getElementById('testRequirement').value;
+                const purpose = document.getElementById('testPurpose').value;
+                
+                if (!species || !count || !type || !indicator || !req || !purpose) {
+                    showToast('请填写所有必填项！', 'error');
+                    return false;
+                }
+            } else if (step === 3) {
+                const rows = document.querySelectorAll('#sampleTableBody tr');
+                let hasData = false;
+                rows.forEach(row => {
+                    const code = row.querySelector('input[name="scode"]').value.trim();
+                    if (code) hasData = true;
+                });
+                if (!hasData) {
+                    showToast('请至少填写一个样本的编号！', 'error');
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        // Update summary display
+        function updateSummary() {
+            // Customer info
+            document.getElementById('customerSummary').innerHTML = `
+                <div class="summary-item"><div class="label">姓名</div><div class="value">${document.getElementById('name').value}</div></div>
+                <div class="summary-item"><div class="label">电话</div><div class="value">${document.getElementById('phone').value}</div></div>
+                <div class="summary-item"><div class="label">单位</div><div class="value">${document.getElementById('company').value}</div></div>
+                <div class="summary-item"><div class="label">快递单号</div><div class="value">${document.getElementById('trackingNo').value}</div></div>
+                <div class="summary-item"><div class="label">订单编号</div><div class="value">${document.getElementById('orderNo').value}</div></div>
+                <div class="summary-item"><div class="label">业务员</div><div class="value">${document.getElementById('salesperson').value}</div></div>
+            `;
+            
+            // Test requirements
+            document.getElementById('testSummary').innerHTML = `
+                <div class="summary-item"><div class="label">种属</div><div class="value">${document.getElementById('species').value}</div></div>
+                <div class="summary-item"><div class="label">样本数量</div><div class="value">${document.getElementById('sampleCount').value} 个</div></div>
+                <div class="summary-item"><div class="label">样本类型</div><div class="value">${document.getElementById('sampleType').value}</div></div>
+                <div class="summary-item"><div class="label">指标名称</div><div class="value">${document.getElementById('indicator').value}</div></div>
+                <div class="summary-item"><div class="label">实验要求</div><div class="value">${document.getElementById('testRequirement').value}</div></div>
+                <div class="summary-item"><div class="label">实验目的</div><div class="value">${document.getElementById('testPurpose').value}</div></div>
+                <div class="summary-item"><div class="label">样本重复</div><div class="value">${document.getElementById('sampleRepeat').value}</div></div>
+                <div class="summary-item"><div class="label">标曲重复</div><div class="value">${document.getElementById('standardRepeat').value}</div></div>
+            `;
+            
+            // Sample table
+            const rows = document.querySelectorAll('#sampleTableBody tr');
+            let sampleHtml = '<table class="sample-table" style="margin-top:10px;"><thead><tr><th>序号</th><th>样本编号</th><th>样本类型</th><th>样本分组</th></tr></thead><tbody>';
+            rows.forEach((row, index) => {
+                const code = row.querySelector('input[name="scode"]').value;
+                if (code.trim()) {
+                    sampleHtml += `<tr><td>${index + 1}</td><td>${code}</td><td>${row.querySelector('input[name="stype"]').value}</td><td>${row.querySelector('input[name="sgroup"]').value}</td></tr>`;
+                }
+            });
+            sampleHtml += '</tbody></table>';
+            document.getElementById('sampleSummary').innerHTML = sampleHtml;
+        }
+        
+        // Show toast message
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        // Collect all form data
+        function collectData() {
+            const samples = [];
+            const rows = document.querySelectorAll('#sampleTableBody tr');
+            rows.forEach((row, index) => {
+                const stype = row.querySelector('input[name="stype"]').value;
+                const scode = row.querySelector('input[name="scode"]').value;
+                const sgroup = row.querySelector('input[name="sgroup"]').value;
+                const samount = row.querySelector('input[name="samount"]').value;
+                const stemp = row.querySelector('input[name="stemp"]').value;
+                const sdate = row.querySelector('input[name="sdate"]').value;
+                const snote = row.querySelector('input[name="snote"]').value;
+                const sreq = row.querySelector('input[name="sreq"]').value;
+                
+                samples.push({
+                    stype: stype,
+                    scode: scode,
+                    sgroup: sgroup,
+                    samount: samount,
+                    stemp: stemp,
+                    sdate: sdate,
+                    snote: snote,
+                    sreq: sreq
+                });
+            });
+            
+            return {
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
+                company: document.getElementById('company').value,
+                trackingNo: document.getElementById('trackingNo').value,
+                orderNo: document.getElementById('orderNo').value,
+                salesperson: document.getElementById('salesperson').value,
+                species: document.getElementById('species').value,
+                sampleCount: document.getElementById('sampleCount').value,
+                sampleType: document.getElementById('sampleType').value,
+                indicator: document.getElementById('indicator').value,
+                testRequirement: document.getElementById('testRequirement').value,
+                testPurpose: document.getElementById('testPurpose').value,
+                remarks: document.getElementById('remarks').value,
+                sampleInfo: document.getElementById('sampleInfo').value,
+                sampleRepeat: document.getElementById('sampleRepeat').value,
+                standardRepeat: document.getElementById('standardRepeat').value,
+                samples: samples
+            };
+        }
+        
+        // Export to Excel using backend server (preserves all formatting)
+        async function exportExcel() {
+            const btn = document.getElementById('exportBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> 正在生成...';
+
+            try {
+                const data = collectData();
+
+                // Send data to backend server
+                const response = await fetch('http://127.0.0.1:8765/export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error('服务器响应失败');
+                }
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.error || '导出失败');
+                }
+
+                // Decode base64 and trigger download
+                const binaryString = atob(result.data);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+
+                const blob = new Blob([bytes.buffer], { 
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = result.filename || '优品Elisa代测表.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showToast('Excel文件已导出！', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('导出失败：' + error.message + '\n\n请确保已启动后端服务（启动系统.bat）');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // Initialize
+        initSampleTable();
+        autoFillOrderNo();
+        
+        // Auto fill order number with today's date (format: 20260407)
+        function autoFillOrderNo() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            document.getElementById('orderNo').value = `${year}${month}${day}`;
+        }
+        
+        // Format order number (auto convert 2026.4.12 to 20260412)
+        function formatOrderNo(input) {
+            let value = input.value;
+            // Remove all non-digit characters except dots
+            let cleaned = value.replace(/[^\d.]/g, '');
+            // Split by dots
+            let parts = cleaned.split('.');
+            if (parts.length >= 2) {
+                let year = parts[0] || '';
+                let month = parts[1] || '';
+                let day = parts[2] || '';
+                // Pad month and day with zeros
+                if (month.length === 1) month = '0' + month;
+                if (day.length === 1) day = '0' + day;
+                input.value = year + month + day;
+            } else {
+                // Just numbers, keep as is
+                input.value = cleaned;
+            }
+        }
+        
+        // Apply batch settings to all sample rows
+        function applyBatchToAll() {
+            const batchCode = document.getElementById('batchCode').value;
+            const batchType = document.getElementById('batchType').value;
+            const batchGroup = document.getElementById('batchGroup').value;
+            const batchAmount = document.getElementById('batchAmount').value;
+            const batchTemp = document.getElementById('batchTemp').value;
+            const batchDate = document.getElementById('batchDate').value;
+            const batchNote = document.getElementById('batchNote').value;
+            const batchReq = document.getElementById('batchReq').value;
+
+            if (!batchCode && !batchType && !batchGroup && !batchAmount && !batchTemp && !batchDate && !batchNote && !batchReq) {
+                showToast('请至少填写一项批量设置内容', 'error');
+                return;
+            }
+
+            const rows = document.querySelectorAll('#sampleTableBody tr');
+            rows.forEach(row => {
+                if (batchCode) {
+                    const codeInput = row.querySelector('input[name="scode"]');
+                    if (codeInput) codeInput.value = batchCode;
+                }
+                if (batchType) {
+                    const typeInput = row.querySelector('input[name="stype"]');
+                    if (typeInput) typeInput.value = batchType;
+                }
+                if (batchGroup) {
+                    const groupInput = row.querySelector('input[name="sgroup"]');
+                    if (groupInput) groupInput.value = batchGroup;
+                }
+                if (batchAmount) {
+                    const amountInput = row.querySelector('input[name="samount"]');
+                    if (amountInput) amountInput.value = batchAmount;
+                }
+                if (batchTemp) {
+                    const tempInput = row.querySelector('input[name="stemp"]');
+                    if (tempInput) tempInput.value = batchTemp;
+                }
+                if (batchDate) {
+                    const dateInput = row.querySelector('input[name="sdate"]');
+                    if (dateInput) dateInput.value = batchDate;
+                }
+                if (batchNote) {
+                    const noteInput = row.querySelector('input[name="snote"]');
+                    if (noteInput) noteInput.value = batchNote;
+                }
+                if (batchReq) {
+                    const reqInput = row.querySelector('input[name="sreq"]');
+                    if (reqInput) reqInput.value = batchReq;
+                }
+            });
+
+            let msg = [];
+            if (batchCode) msg.push(`编号:${batchCode}`);
+            if (batchType) msg.push(`类型:${batchType}`);
+            if (batchGroup) msg.push(`分组:${batchGroup}`);
+            if (batchAmount) msg.push(`样本量:${batchAmount}`);
+            if (batchTemp) msg.push(`温度:${batchTemp}`);
+            if (batchDate) msg.push(`日期:${batchDate}`);
+            if (batchNote) msg.push(`备注:${batchNote}`);
+            if (batchReq) msg.push(`要求:${batchReq}`);
+            showToast(`已应用到所有行 (${msg.join(', ')})`, 'success');
+        }
+        
+        // Apply batch settings to selected rows only
+        function applyBatchToSelected() {
+            const batchType = document.getElementById('batchType').value;
+            const batchCode = document.getElementById('batchCode').value;
+            const batchGroup = document.getElementById('batchGroup').value;
+            const batchAmount = document.getElementById('batchAmount').value;
+            const batchTemp = document.getElementById('batchTemp').value;
+            const batchDate = document.getElementById('batchDate').value;
+            const batchNote = document.getElementById('batchNote').value;
+            const batchReq = document.getElementById('batchReq').value;
+
+            if (!batchCode && !batchType && !batchGroup && !batchAmount && !batchTemp && !batchDate && !batchNote && !batchReq) {
+                showToast('请至少填写一项批量设置内容', 'error');
+                return;
+            }
+
+            const rows = document.querySelectorAll('#sampleTableBody tr');
+            let appliedCount = 0;
+
+            rows.forEach(row => {
+                const checkbox = row.querySelector('.row-checkbox');
+                if (checkbox && checkbox.checked) {
+                    if (batchCode) {
+                        const codeInput = row.querySelector('input[name="scode"]');
+                        if (codeInput) codeInput.value = batchCode;
+                    }
+                    if (batchType) {
+                        const typeInput = row.querySelector('input[name="stype"]');
+                        if (typeInput) typeInput.value = batchType;
+                    }
+                    if (batchGroup) {
+                        const groupInput = row.querySelector('input[name="sgroup"]');
+                        if (groupInput) groupInput.value = batchGroup;
+                    }
+                    if (batchAmount) {
+                        const amountInput = row.querySelector('input[name="samount"]');
+                        if (amountInput) amountInput.value = batchAmount;
+                    }
+                    if (batchTemp) {
+                        const tempInput = row.querySelector('input[name="stemp"]');
+                        if (tempInput) tempInput.value = batchTemp;
+                    }
+                    if (batchDate) {
+                        const dateInput = row.querySelector('input[name="sdate"]');
+                        if (dateInput) dateInput.value = batchDate;
+                    }
+                    if (batchNote) {
+                        const noteInput = row.querySelector('input[name="snote"]');
+                        if (noteInput) noteInput.value = batchNote;
+                    }
+                    if (batchReq) {
+                        const reqInput = row.querySelector('input[name="sreq"]');
+                        if (reqInput) reqInput.value = batchReq;
+                    }
+                    appliedCount++;
+                }
+            });
+
+            if (appliedCount === 0) {
+                showToast('请先勾选要修改的行', 'error');
+            } else {
+                let msg = [];
+                if (batchCode) msg.push(`编号:${batchCode}`);
+                if (batchType) msg.push(`类型:${batchType}`);
+                if (batchGroup) msg.push(`分组:${batchGroup}`);
+                if (batchAmount) msg.push(`样本量:${batchAmount}`);
+                if (batchTemp) msg.push(`温度:${batchTemp}`);
+                if (batchDate) msg.push(`日期:${batchDate}`);
+                if (batchNote) msg.push(`备注:${batchNote}`);
+                if (batchReq) msg.push(`要求:${batchReq}`);
+                showToast(`已应用到 ${appliedCount} 个选中行 (${msg.join(', ')})`, 'success');
+            }
+        }
+    </script>
+</body>
+</html>
