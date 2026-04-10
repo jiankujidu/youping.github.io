@@ -6,7 +6,7 @@
     <title>ELISA检测服务 - 样本信息填写系统</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <script src="template_base64.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <style>
         :root {
             --primary: #2563eb;
@@ -1173,7 +1173,7 @@
             };
         }
         
-        // Export to Excel using backend server (preserves all formatting)
+        // Export to Excel using ExcelJS (preserves colors, borders, fonts, etc.)
         async function exportExcel() {
             const btn = document.getElementById('exportBtn');
             const originalText = btn.innerHTML;
@@ -1183,37 +1183,71 @@
             try {
                 const data = collectData();
 
-                // Send data to backend server
-                const response = await fetch('http://127.0.0.1:8765/export', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                if (!response.ok) {
-                    throw new Error('服务器响应失败');
-                }
-
-                const result = await response.json();
-
-                if (!result.success) {
-                    throw new Error(result.error || '导出失败');
-                }
-
-                // Decode base64 and trigger download
-                const binaryString = atob(result.data);
+                // Decode base64 template to ArrayBuffer
+                const binaryString = atob(TEMPLATE_BASE64);
                 const bytes = new Uint8Array(binaryString.length);
                 for (let i = 0; i < binaryString.length; i++) {
                     bytes[i] = binaryString.charCodeAt(i);
                 }
 
-                const blob = new Blob([bytes.buffer], { 
+                // Load workbook from template using ExcelJS
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(bytes.buffer);
+
+                // ===== Sheet 1: 样本检测要求信息表 =====
+                const ws1 = workbook.getWorksheet('样本检测要求信息表');
+                if (ws1) {
+                    const setCell = (cellRef, value) => {
+                        const cell = ws1.getCell(cellRef);
+                        cell.value = value;
+                    };
+                    setCell('B3', data.name || '');
+                    setCell('D3', data.phone || '');
+                    setCell('G3', data.company || '');
+                    setCell('B4', data.trackingNo || '');
+                    setCell('D4', data.orderNo || '');
+                    setCell('G4', data.salesperson || '陈美龙');
+                    setCell('B8', data.species || '');
+                    setCell('G8', data.sampleCount ? parseInt(data.sampleCount) : '');
+                    setCell('B9', data.sampleType || '');
+                    setCell('B10', data.indicator || '');
+                    setCell('B11', (data.testRequirement || '') + ' / ' + (data.testPurpose || ''));
+                    setCell('B12', data.remarks || '');
+                    setCell('B13', data.sampleInfo || '');
+                    setCell('B14', data.sampleRepeat || '无');
+                    setCell('B16', data.standardRepeat || '无');
+                }
+
+                // ===== Sheet 2: 样本检测信息采集表 =====
+                const ws2 = workbook.getWorksheet('样本检测信息采集表');
+                if (ws2 && data.samples) {
+                    data.samples.forEach((sample, i) => {
+                        const row = i + 3;
+                        if (row <= 82) {
+                            ws2.getCell(row, 1).value = i + 1;
+                            ws2.getCell(row, 2).value = sample.stype || '';
+                            ws2.getCell(row, 3).value = sample.scode || '';
+                            ws2.getCell(row, 4).value = sample.sgroup || '';
+                            ws2.getCell(row, 5).value = sample.samount || '';
+                            ws2.getCell(row, 6).value = sample.stemp || '';
+                            ws2.getCell(row, 7).value = sample.sdate || '';
+                            ws2.getCell(row, 8).value = sample.snote || '';
+                            ws2.getCell(row, 9).value = sample.sreq || '';
+                        }
+                    });
+                }
+
+                // Generate Excel buffer
+                const buffer = await workbook.xlsx.writeBuffer();
+
+                // Trigger download
+                const blob = new Blob([buffer], { 
                     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
                 });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = result.filename || '优品Elisa代测表.xlsx';
+                a.download = '优品Elisa代测表_已填写.xlsx';
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -1222,7 +1256,7 @@
                 showToast('Excel文件已导出！', 'success');
             } catch (error) {
                 console.error('Export error:', error);
-                alert('导出失败：' + error.message + '\n\n请确保已启动后端服务（启动系统.bat）');
+                alert('导出失败：' + error.message);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
