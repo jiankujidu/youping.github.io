@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>供销合同｜大区域鼠标签名</title>
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:"SimSun",宋体;}
+body{background:#eee;padding:20px;font-size:16px;line-height:1.8;}
+.contract-page{
+    width:210mm;
+    min-height:297mm;
+    background:#fff;
+    padding:30mm 20mm;
+    margin:0 auto;
+    position:relative;
+}
+@media print{
+    body{background:#fff;padding:0;}
+    .contract-page{width:100%;padding:0;margin:0;}
+    .sign-operate,.global-btn{display:none !important;}
+    @page{size:A4 portrait;margin:20mm;}
+}
+h1{text-align:center;font-size:32px;font-weight:bold;margin-bottom:10px;}
+.header-row{display:flex;justify-content:space-between;margin-bottom:8px;font-size:18px;}
+.divider{border-bottom:2px solid #222;margin-bottom:20px;}
+.para{margin:16px 0;text-indent:2em;}
+table{width:100%;border-collapse:collapse;margin:15px 0;}
+table td{border:1px solid #222;padding:8px 10px;}
+.section-title{font-size:18px;margin:12px 0 6px;}
+.page-number{position:absolute;right:20mm;top:30mm;font-size:16px;}
+.sign-wrap{display:flex;justify-content:space-between;margin-top:40px;}
+.sign-block{width:48%;}
+.sign-line{
+    position:relative;
+    border-bottom:1px solid #000;
+    height:140px;
+    margin:12px 0;
+}
+.sign-canvas{
+    position:absolute;left:0;top:0;
+    width:100%;height:100%;
+    cursor:crosshair;
+}
+.sign-operate{margin:4px 0 12px;}
+button{padding:4px 8px;font-size:14px;cursor:pointer;}
+.global-btn{text-align:center;margin-bottom:20px;}
+#savePdfBtn{
+    padding:10px 24px;font-size:18px;
+    background:#2266cc;color:#fff;border:none;border-radius:4px;
+}
+</style>
+</head>
+<body>
+<div class="global-btn">
+    <button id="savePdfBtn">✅ 鼠标签名完成 → 导出整份合同PDF</button>
+</div>
+
+<div class="contract-page" id="contractDom">
+    <div class="page-number">1</div>
+    <h1>供销合同</h1>
+    <div class="header-row">
+        <span>采购方：潍坊晟桥贸易有限公司</span>
+        <span>合同编号：WZX________J1</span>
+    </div>
+    <div class="header-row">
+        <span>供货方：上海巍涛化工有限公司</span>
+        <span>签订方式：&nbsp;&nbsp;网签</span>
+    </div>
+    <div class="header-row">
+        <span></span>
+        <span>签订日期： 2024 年 07 月 __ 日</span>
+    </div>
+    <div class="divider"></div>
+
+    <p class="para">鉴于采购方希望向供货方购买化工产品，供货方同意向采购方销售化工产品，采购方与供货方在平等、自愿的基础上，经友好协商，达成本协议如下：</p>
+
+    <p class="section-title">一、合同标的、数量、价款</p>
+    <table>
+        <tr>
+            <td>产品名称与 CAS NO.</td>
+            <td></td>
+            <td>单价（元/KG）</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>规格或者质量要求</td>
+            <td>纯度</td>
+            <td>数量（KG）</td>
+        </tr>
+        <tr>
+            <td>合同总价款人民币金额（大写）</td>
+            <td></td>
+            <td>总价（元）</td>
+        </tr>
+    </table>
+
+    <p class="section-title">二、关于检测方法的约定：纯度 GC 检测在 99%以上；</p>
+    <p class="section-title">三、交货地点及方式：地点：客户自提。</p>
+
+    <div class="sign-wrap">
+        <div class="sign-block">
+            <p>采购方（盖章）：潍坊晟桥贸易有限公司</p>
+            <div class="sign-line">
+                <canvas id="canvasBuyStamp" class="sign-canvas"></canvas>
+            </div>
+            <div class="sign-operate">
+                <button onclick="clearSign('canvasBuyStamp')">清空签名</button>
+            </div>
+            <p>授权代表签字：</p>
+            <div class="sign-line">
+                <canvas id="canvasBuySign" class="sign-canvas"></canvas>
+            </div>
+            <div class="sign-operate">
+                <button onclick="clearSign('canvasBuySign')">清空签名</button>
+            </div>
+            <p>日期：_______年____月____日</p>
+        </div>
+
+        <div class="sign-block">
+            <p>供货方（盖章）：上海巍涛化工有限公司</p>
+            <div class="sign-line">
+                <canvas id="canvasSellStamp" class="sign-canvas"></canvas>
+            </div>
+            <div class="sign-operate">
+                <button onclick="clearSign('canvasSellStamp')">清空签名</button>
+            </div>
+            <p>授权代表签字：</p>
+            <div class="sign-line">
+                <canvas id="canvasSellSign" class="sign-canvas"></canvas>
+            </div>
+            <div class="sign-operate">
+                <button onclick="clearSign('canvasSellSign')">清空签名</button>
+            </div>
+            <p>日期：_______年____月____日</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function createPenCanvas(canvasId){
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    const wrap = canvas.parentElement;
+
+    function resize(){
+        const savedImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        canvas.width = wrap.clientWidth;
+        canvas.height = wrap.clientHeight;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 2.4;
+        ctx.putImageData(savedImage, 0, 0);
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    let drawing = false;
+
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return {x: e.clientX - rect.left, y: e.clientY - rect.top};
+    }
+
+    canvas.addEventListener("mousedown", function(e){
+        drawing = true;
+        const p = getPos(e);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+    });
+
+    canvas.addEventListener("mousemove", function(e){
+        if(!drawing) return;
+        const p = getPos(e);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+    });
+
+    function stopDraw(){
+        drawing = false;
+    }
+    canvas.addEventListener("mouseup", stopDraw);
+    canvas.addEventListener("mouseleave", stopDraw);
+}
+
+function clearSign(id){
+    const c = document.getElementById(id);
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+}
+
+document.querySelector("#savePdfBtn").onclick = function(){
+    const content = document.getElementById("contractDom");
+    const opts = {
+        margin:20,
+        filename:"供销合同_已签名.pdf",
+        image:{type:"jpeg",quality:0.98},
+        html2canvas:{scale:2},
+        jsPDF:{unit:"mm",format:"a4",orientation:"portrait"}
+    };
+    html2pdf().set(opts).from(content).save();
+};
+
+window.onload = function(){
+    createPenCanvas("canvasBuyStamp");
+    createPenCanvas("canvasBuySign");
+    createPenCanvas("canvasSellStamp");
+    createPenCanvas("canvasSellSign");
+}
+</script>
+</body>
+</html>
+<!-- （注：内容由AI生成） -->
