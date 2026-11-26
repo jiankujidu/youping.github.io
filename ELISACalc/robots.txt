@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: http://a.my118.xyz/sitemap.xml
